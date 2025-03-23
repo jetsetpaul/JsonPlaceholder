@@ -23,6 +23,9 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
@@ -38,8 +41,10 @@ import com.example.lplplaceholder.model.Comment
 fun CommentScreen(
     commentsState: Result<List<Comment>>,
     onProfileClick: (Comment) -> Unit,
-    selectedImages: Map<Int, Uri?> // Map of selected images
+    selectedImages: Map<Int, Uri?>
 ) {
+    val images = selectedImages
+
     when (commentsState) {
         is Result.Loading -> {
             Box(
@@ -49,6 +54,7 @@ fun CommentScreen(
                 CircularProgressIndicator()
             }
         }
+
         is Result.Success -> {
             val comments = commentsState.data
             LazyColumn(
@@ -57,36 +63,51 @@ fun CommentScreen(
                     .padding(16.dp)
             ) {
                 items(comments) { comment ->
-                    CommentItem(comment, onProfileClick, selectedImages[comment.id])
+                    CommentItem(comment, onProfileClick, images[comment.id])
                 }
             }
         }
+
         is Result.Error -> {
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = androidx.compose.ui.Alignment.Center
             ) {
                 Text(
-                    text = commentsState.message,
-                    color = MaterialTheme.colorScheme.error
+                    text = commentsState.message, color = MaterialTheme.colorScheme.error
                 )
             }
         }
     }
 }
 
+
 @Preview(showBackground = true)
 @Composable
 fun PreviewCommentScreen() {
+    // Mock data for the comments list
     val sampleComments = listOf(
         Comment(1, 1, "John Doe", "john@example.com", "This is a sample comment."),
         Comment(1, 2, "Jane Smith", "jane@example.com", "Another example comment."),
         Comment(1, 3, "Alice Brown", "alice@example.com", "samples on samples")
     )
 
-    CommentScreen(Result.Success(sampleComments), { profile ->
-        print(profile.name)
-    }, mapOf())
+    val mockSelectedImages = remember {
+        mutableStateMapOf<Int, Uri?>().apply {
+            put(1, Uri.parse(""))
+            put(2, Uri.parse(""))
+        }
+    }
+
+    val mockSelectedImagesStateFlow = remember { mutableStateOf(mockSelectedImages) }
+
+    val mockCommentsState = Result.Success(sampleComments)
+
+    CommentScreen(
+        commentsState = mockCommentsState,
+        onProfileClick = { /* Simulate a click */ },
+        selectedImages = mockSelectedImagesStateFlow.value
+    )
 }
 
 @Composable
@@ -105,17 +126,13 @@ fun CommentItem(
             modifier = Modifier.padding(16.dp)
         ) {
             // Display either selected image or default icon
-            Image(
-                painter = if (selectedImageUri != null)
-                    rememberAsyncImagePainter(model = selectedImageUri)
-                else
-                    painterResource(id = R.drawable.ic_person),
+            Image(painter = if (selectedImageUri != null) rememberAsyncImagePainter(model = selectedImageUri)
+            else painterResource(id = R.drawable.ic_person),
                 contentDescription = "Profile Picture",
                 modifier = Modifier
                     .size(48.dp)
                     .clip(CircleShape)
-                    .clickable { onProfileClick(comment) }
-            )
+                    .clickable { onProfileClick(comment) })
 
             Spacer(modifier = Modifier.width(12.dp))
 
@@ -145,8 +162,7 @@ fun CommentItem(
                 )
 
                 Text(
-                    text = comment.body,
-                    style = MaterialTheme.typography.bodySmall
+                    text = comment.body, style = MaterialTheme.typography.bodySmall
                 )
             }
         }

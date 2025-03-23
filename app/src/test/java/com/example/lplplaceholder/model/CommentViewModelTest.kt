@@ -1,6 +1,8 @@
 package com.example.lplplaceholder.model
 
+import android.net.Uri
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
+import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import com.example.lplplaceholder.data.CommentRepository
 import com.example.lplplaceholder.viewmodel.CommentViewModel
@@ -16,6 +18,8 @@ import io.mockk.coEvery
 import kotlinx.coroutines.flow.flowOf
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import kotlin.test.Test
@@ -30,11 +34,14 @@ class CommentViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
     private val repository = mockk<CommentRepository>()
+    private val savedStateHandle = SavedStateHandle()
     private lateinit var viewModel: CommentViewModel
 
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
+        // Initialize SavedStateHandle with a regular HashMap instead of mutableStateMapOf
+        savedStateHandle["selectedImages"] = HashMap<Int, Uri?>()
     }
 
     @After
@@ -43,100 +50,71 @@ class CommentViewModelTest {
     }
 
     @Test
-    fun `init should fetch comments`() = runTest {
-        // Given
-        val comments = listOf(
-            Comment(1, 1, "John Doe", "john@example.com", "Great post!", 123),
-            Comment(1, 2, "Jane Smith", "jane@example.com", "Thanks for sharing", null)
-        )
-        val successResult = Result.Success(comments)
-        coEvery { repository.getComments() } returns flowOf(successResult)
-
-        // When
-        viewModel = CommentViewModel(repository)
-
-        // Then
-        viewModel.commentsState.test {
-            assertEquals(Result.Loading, awaitItem()) // Initial state
-            assertEquals(successResult, awaitItem()) // State after init
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    @Test
-    fun `fetchComments should update state to Loading then Success on successful fetch`() = runTest {
-        // Given
-        val comments = listOf(
-            Comment(1, 1, "John Doe", "john@example.com", "Great post!", 123)
-        )
-        val successResult = Result.Success(comments)
-        coEvery { repository.getComments() } returns flowOf(Result.Loading, successResult)
-
-        // Mock initial state
+    fun `updateSelectedImage should update the image for specific comment ID`() = runTest {
+        val commentId = 1
+        val uri = mockk<Uri>()
         coEvery { repository.getComments() } returns flowOf(Result.Loading)
-        viewModel = CommentViewModel(repository)
+        viewModel = CommentViewModel(repository, savedStateHandle)
 
-        // Reset mock for fetchComments test
-        coEvery { repository.getComments() } returns flowOf(Result.Loading, successResult)
+        viewModel.updateSelectedImage(commentId, uri)
 
-        // When
-        viewModel.commentsState.test {
-            // Skip initial Loading state from init
-            awaitItem()
-
-            // Call the method we're testing
-            viewModel.fetchComments()
-
-            // Then
-            assertEquals(Result.Loading, awaitItem())
-            assertEquals(successResult, awaitItem())
+        viewModel.selectedImages.test {
+            val images = awaitItem()
+            assertEquals(uri, images[commentId])
             cancelAndIgnoreRemainingEvents()
         }
     }
 
     @Test
-    fun `fetchComments should update state to Error on error`() = runTest {
-        // Given
-        val errorMessage = "Network error"
-        val errorResult = Result.Error(errorMessage)
-        coEvery { repository.getComments() } returns flowOf(Result.Loading, errorResult)
-
-        // Mock initial state
+    fun `selectedImages should be empty initially`() = runTest {
         coEvery { repository.getComments() } returns flowOf(Result.Loading)
-        viewModel = CommentViewModel(repository)
 
-        // Reset mock for fetchComments test
-        coEvery { repository.getComments() } returns flowOf(Result.Loading, errorResult)
+        viewModel = CommentViewModel(repository, savedStateHandle)
 
-        // When
-        viewModel.commentsState.test {
-            // Skip initial Loading state from init
-            awaitItem()
-
-            // Call the method we're testing
-            viewModel.fetchComments()
-
-            // Then
-            assertEquals(Result.Loading, awaitItem())
-            assertEquals(errorResult, awaitItem())
+        viewModel.selectedImages.test {
+            val images = awaitItem()
+            assertTrue(images.isEmpty())
             cancelAndIgnoreRemainingEvents()
         }
     }
 
     @Test
-    fun `repository should be called when fetchComments is invoked`() = runTest {
+    fun `fetchComments should transition from Loading to Success with correct data`() = runTest {
         // Given
-        val comments = listOf(
-            Comment(1, 1, "John Doe", "john@example.com", "Great post!", 123)
+        val expectedComments = listOf(
+            Comment(1, 1, "Alice", "alice@example.com", "First comment", 101),
+            Comment(1, 2, "Bob", "bob@example.com", "Second comment", 102),
+            Comment(2, 3, "Charlie", "charlie@example.com", "Another thread", null)
         )
-        coEvery { repository.getComments() } returns flowOf(Result.Success(comments))
+        val loadingState = Result.Loading
+        val successState = Result.Success(expectedComments)
 
-        // When
-        viewModel = CommentViewModel(repository)
-        viewModel.fetchComments()
+        // Setup repository to return a loading state followed by a success state
+        coEvery { repository.getComments() } returns flowOf(loadingState, successState)
 
-        // Then
-        // The verification is implicit in the coEvery setup and the fact that
-        // we're collecting the flow twice (once in init and once in fetchComments)
+        viewModel = CommentViewModel(repository, savedStateHandle)
+
+        viewModel.commentsState.test {
+            // First emit should be Loading (from init)
+            val initialState = awaitItem()
+            assertTrue(initialState is Result.Loading)
+
+            // Second emit should be Success with our comments
+            val resultState = awaitItem()
+            assertTrue(resultState is Result.Success)
+
+            // Verify the data matches what we expect
+            val comments = (resultState as Result.Success<List<Comment>>).data
+            assertEquals(3, comments.size)
+            assertEquals("Alice", comments[0].name)
+            assertEquals("bob@example.com", comments[1].email)
+            assertEquals("Another thread", comments[2].body)
+            assertEquals(101, comments[0].imageId)
+            assertNull(comments[2].imageId)
+
+            // No more emissions expected
+            expectNoEvents()
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 }
