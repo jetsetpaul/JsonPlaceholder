@@ -39,7 +39,6 @@ class CommentViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
 
-    private lateinit var viewModel: CommentViewModel
     private lateinit var repository: CommentRepository
     private lateinit var dataStoreManager: DataStoreManager
     private lateinit var application: Application
@@ -61,8 +60,6 @@ class CommentViewModelTest {
 
         // Setup repository with coEvery for suspend functions
         coEvery { repository.getComments() } returns flowOf(Result.Loading)
-
-        viewModel = CommentViewModel(repository, savedStateHandle, application)
     }
 
     @After
@@ -106,7 +103,6 @@ class CommentViewModelTest {
         coVerify { repository.getComments() }
 
     }
-
 
     @Test
     fun `fetchComments handles error`() = runTest {
