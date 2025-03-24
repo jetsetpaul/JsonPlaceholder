@@ -2,6 +2,7 @@ package com.example.lplplaceholder.view
 
 import android.net.Uri
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -33,33 +34,37 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil.compose.rememberAsyncImagePainter
 import com.example.lplplaceholder.R
-import com.example.lplplaceholder.utils.Result
 import com.example.lplplaceholder.model.Comment
+import com.example.lplplaceholder.viewmodel.CommentUiState
 
 
 @Composable
 fun CommentScreen(
-    commentsState: Result<List<Comment>>,
+    uiState: CommentUiState,
     onProfileClick: (Comment) -> Unit,
     selectedImages: Map<Int, Uri?>
 ) {
     val images = selectedImages
 
-    when (commentsState) {
-        is Result.Loading -> {
+    when (uiState) {
+        is CommentUiState.Loading -> {
             Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = androidx.compose.ui.Alignment.Center
-            ) {
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(color = androidx.compose.ui.graphics.Color.White),
+                contentAlignment = androidx.compose.ui.Alignment.Center,
+
+                ) {
                 CircularProgressIndicator()
             }
         }
 
-        is Result.Success -> {
-            val comments = commentsState.data
+        is CommentUiState.Success -> {
+            val comments = uiState.comments
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
+                    .background(color = androidx.compose.ui.graphics.Color.White)
                     .padding(16.dp)
             ) {
                 items(comments) { comment ->
@@ -68,13 +73,15 @@ fun CommentScreen(
             }
         }
 
-        is Result.Error -> {
+        is CommentUiState.Error -> {
             Box(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(color = androidx.compose.ui.graphics.Color.White),
                 contentAlignment = androidx.compose.ui.Alignment.Center
             ) {
                 Text(
-                    text = commentsState.message, color = MaterialTheme.colorScheme.error
+                    text = uiState.message, color = MaterialTheme.colorScheme.error
                 )
             }
         }
@@ -101,10 +108,10 @@ fun PreviewCommentScreen() {
 
     val mockSelectedImagesStateFlow = remember { mutableStateOf(mockSelectedImages) }
 
-    val mockCommentsState = Result.Success(sampleComments)
+    val mockCommentsState = CommentUiState.Success(sampleComments)
 
     CommentScreen(
-        commentsState = mockCommentsState,
+        uiState = mockCommentsState,
         onProfileClick = { /* Simulate a click */ },
         selectedImages = mockSelectedImagesStateFlow.value
     )
@@ -120,14 +127,16 @@ fun CommentItem(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp),
-        elevation = CardDefaults.elevatedCardElevation(4.dp)
+        elevation = CardDefaults.elevatedCardElevation(4.dp),
+        colors = CardDefaults.cardColors(containerColor = androidx.compose.ui.graphics.Color.White)
+
     ) {
         Row(
             modifier = Modifier.padding(16.dp)
         ) {
             // Display either selected image or default icon
             Image(painter = if (selectedImageUri != null) rememberAsyncImagePainter(model = selectedImageUri)
-            else painterResource(id = R.drawable.ic_person),
+            else painterResource(id = R.drawable.ic_person_round),
                 contentDescription = "Profile Picture",
                 modifier = Modifier
                     .size(48.dp)
@@ -144,13 +153,14 @@ fun CommentItem(
                     Text(
                         text = comment.name,
                         style = MaterialTheme.typography.labelMedium,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        color = androidx.compose.ui.graphics.Color.Black
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = comment.email,
                         style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary
+                        color = androidx.compose.ui.graphics.Color.Black
                     )
                 }
 
@@ -158,11 +168,12 @@ fun CommentItem(
                 Text(
                     text = comment.id.toString(),
                     style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary
+                    color = androidx.compose.ui.graphics.Color.Black
                 )
 
                 Text(
-                    text = comment.body, style = MaterialTheme.typography.bodySmall
+                    text = comment.body, style = MaterialTheme.typography.bodySmall,
+                    color = androidx.compose.ui.graphics.Color.Black
                 )
             }
         }

@@ -6,7 +6,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.lplplaceholder.model.Comment
 import com.example.lplplaceholder.view.CommentScreen
-import com.example.lplplaceholder.utils.Result
+import com.example.lplplaceholder.viewmodel.CommentUiState
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -26,7 +26,7 @@ class CommentScreenTest {
 
         composeTestRule.activity.setContent {
             CommentScreen(
-                commentsState = Result.Success(mockComments),
+                uiState = CommentUiState.Success(mockComments),
                 onProfileClick = {},
                 selectedImages = emptyMap(),
             )
@@ -42,7 +42,7 @@ class CommentScreenTest {
     fun testErrorMessageDisplays() {
         composeTestRule.activity.setContent {
             CommentScreen(
-                commentsState = Result.Error("Network error"),
+                uiState = CommentUiState.Error("Network error"),
                 onProfileClick = {},
                 selectedImages = emptyMap(),
             )

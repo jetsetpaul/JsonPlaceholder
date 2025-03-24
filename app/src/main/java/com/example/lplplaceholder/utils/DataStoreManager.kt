@@ -16,7 +16,6 @@ private val Context.dataStore by preferencesDataStore(name = "image_store")
 class DataStoreManager(private val context: Context) {
 
     companion object {
-        private val IMAGE_MAP_KEY = stringPreferencesKey("selected_images")
         private val COMMENT_LIST_KEY = stringPreferencesKey("comment_list")
     }
 

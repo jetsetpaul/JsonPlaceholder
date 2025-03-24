@@ -24,8 +24,8 @@ class CommentViewModel @Inject constructor(
 
     private val dataStoreManager = DataStoreManager(application)
 
-    private val _commentsState = MutableStateFlow<Result<List<Comment>>>(Result.Loading)
-    val commentsState: StateFlow<Result<List<Comment>>> = _commentsState
+    private val _uiState = MutableStateFlow<CommentUiState>(CommentUiState.Loading)
+    val uiState: StateFlow<CommentUiState> = _uiState
 
     // Use a regular HashMap for state restoration
     private val _selectedImages = MutableStateFlow<Map<Int, Uri?>>(
@@ -52,7 +52,7 @@ class CommentViewModel @Inject constructor(
         viewModelScope.launch {
             dataStoreManager.getComments().collect { comments ->
                 if (comments.isNotEmpty()) {
-                    _commentsState.value = Result.Success(comments)
+                    _uiState.value = CommentUiState.Success(comments)
                 }
             }
         }
@@ -61,17 +61,33 @@ class CommentViewModel @Inject constructor(
     fun fetchComments() {
         viewModelScope.launch {
             try {
-                if ( _commentsState.value is Result.Loading) {
+                if (_uiState.value is CommentUiState.Loading) {
                     repository.getComments().collect { result ->
-                        if (result is Result.Success) {
-                            dataStoreManager.saveComments(result.data) // Save to DataStore
+                        when (result) {
+                            is Result.Success -> {
+                                dataStoreManager.saveComments(result.data) // Save to DataStore
+                                _uiState.value = CommentUiState.Success(result.data)
+                            }
+
+                            is Result.Error -> {
+                                _uiState.value = CommentUiState.Error(result.message)
+                            }
+
+                            else -> {
+                                _uiState.value = CommentUiState.Error("Unexpected result")
+                            }
                         }
-                        _commentsState.value = result
                     }
                 }
             } catch (e: Exception) {
-                _commentsState.value = Result.Error("Failed to fetch comments: ${e.message}")
+                _uiState.value = CommentUiState.Error("Failed to fetch comments: ${e.message}")
             }
         }
     }
+}
+
+sealed interface CommentUiState {
+    object Loading : CommentUiState
+    data class Success(val comments: List<Comment>) : CommentUiState
+    data class Error(val message: String) : CommentUiState
 }

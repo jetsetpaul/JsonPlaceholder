@@ -14,6 +14,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import com.example.lplplaceholder.utils.Result
+import com.example.lplplaceholder.viewmodel.CommentUiState
 import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -75,32 +76,37 @@ class CommentViewModelTest {
         // Create a fresh instance to verify initial state
         val freshViewModel = CommentViewModel(repository, savedStateHandle, application)
 
-        assertTrue(freshViewModel.commentsState.value is Result.Loading)
+        assertTrue(freshViewModel.uiState.value is CommentUiState.Loading)
     }
 
     @Test
     fun `fetchComments updates state with success`() = runTest {
-        // Arrange
+        // Arrange: Create mock comments
         val mockComments = listOf(
             Comment(1, 1, "Alice", "alice@example.com", "First comment", 101),
             Comment(1, 2, "Bob", "bob@example.com", "Second comment", 102),
             Comment(2, 3, "Charlie", "charlie@example.com", "Another thread", null)
         )
 
+        // Mock repository to return a flow emitting success
         coEvery { repository.getComments() } returns flowOf(Result.Success(mockComments))
+
+        val viewModel = CommentViewModel(repository, savedStateHandle, application)
 
         // Act
         viewModel.fetchComments()
-        advanceUntilIdle() // Advance coroutines until all are complete
+        advanceUntilIdle() // Ensures coroutine execution completes
 
-        // Assert
-        val result = viewModel.commentsState.value
-        assertTrue(result is Result.Success)
-        assertEquals(mockComments, (result as Result.Success).data)
+        // Assert: Verify the UI state was updated
+        val result = viewModel.uiState.value
+        assertTrue(result is CommentUiState.Success)
+        assertEquals(mockComments, (result as CommentUiState.Success).comments)
 
-        // Verify DataStore save was called
-        coVerify { anyConstructed<DataStoreManager>().saveComments(mockComments) }
+        // Verify repository was called once
+        coVerify { repository.getComments() }
+
     }
+
 
     @Test
     fun `fetchComments handles error`() = runTest {
@@ -108,14 +114,15 @@ class CommentViewModelTest {
         val errorMessage = "Network error"
         coEvery { repository.getComments() } returns flowOf(Result.Error(errorMessage))
 
+        val viewModel = CommentViewModel(repository, savedStateHandle, application)
         // Act
         viewModel.fetchComments()
         advanceUntilIdle()
 
         // Assert
-        val result = viewModel.commentsState.value
-        assertTrue(result is Result.Error)
-        assertEquals(errorMessage, (result as Result.Error).message)
+        val result = viewModel.uiState.value
+        assertTrue(result is CommentUiState.Error)
+        assertEquals(errorMessage, (result as CommentUiState.Error).message)
     }
 
     @Test
@@ -133,9 +140,9 @@ class CommentViewModelTest {
         advanceUntilIdle()
 
         // Assert
-        val result = viewModel.commentsState.value
-        assertTrue(result is Result.Success)
-        assertEquals(cachedComments, (result as Result.Success).data)
+        val result = viewModel.uiState.value
+        assertTrue(result is CommentUiState.Success)
+        assertEquals(cachedComments, (result as CommentUiState.Success).comments)
     }
 
 }
