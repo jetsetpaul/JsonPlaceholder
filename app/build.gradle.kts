@@ -69,6 +69,8 @@ dependencies {
     implementation(libs.androidx.lifecycle.livedata)
     implementation(libs.hilt.android)
     implementation (libs.coil.compose)
+    implementation(libs.androidx.datastore.preferences)
+    implementation(libs.gson)
     kapt(libs.hilt.android.compiler)
 
     testImplementation(libs.junit)

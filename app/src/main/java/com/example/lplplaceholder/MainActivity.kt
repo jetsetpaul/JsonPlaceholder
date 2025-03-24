@@ -22,7 +22,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Register ActivityResultLauncher BEFORE setContent (fixes lifecycle issue)
         imagePickerLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
             selectedCommentId?.let { id ->
                 if (uri != null) {
