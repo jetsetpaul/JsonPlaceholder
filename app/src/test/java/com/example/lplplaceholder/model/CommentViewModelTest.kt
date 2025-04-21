@@ -1,7 +1,6 @@
 package com.example.lplplaceholder.model
 
 import android.app.Application
-import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import androidx.lifecycle.SavedStateHandle
 import com.example.lplplaceholder.data.CommentRepository
 import com.example.lplplaceholder.utils.DataStoreManager
@@ -28,14 +27,10 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
-import org.junit.Rule
 import kotlin.test.Test
 
 @ExperimentalCoroutinesApi
 class CommentViewModelTest {
-
-    @get:Rule
-    val instantTaskExecutorRule = InstantTaskExecutorRule()
 
     private val testDispatcher = StandardTestDispatcher()
 
@@ -57,6 +52,7 @@ class CommentViewModelTest {
         mockkConstructor(DataStoreManager::class)
         every { anyConstructed<DataStoreManager>().getComments() } returns flowOf(emptyList())
         coEvery { anyConstructed<DataStoreManager>().saveComments(any()) } just Runs
+        coEvery { dataStoreManager.getComments() } returns flowOf(listOf())
 
         // Setup repository with coEvery for suspend functions
         coEvery { repository.getComments() } returns flowOf(Result.Loading)
@@ -71,7 +67,7 @@ class CommentViewModelTest {
     @Test
     fun `initial state is loading`() = runTest {
         // Create a fresh instance to verify initial state
-        val freshViewModel = CommentViewModel(repository, savedStateHandle, application)
+        val freshViewModel = CommentViewModel(repository, savedStateHandle, dataStoreManager)
 
         assertTrue(freshViewModel.uiState.value is CommentUiState.Loading)
     }
@@ -87,8 +83,9 @@ class CommentViewModelTest {
 
         // Mock repository to return a flow emitting success
         coEvery { repository.getComments() } returns flowOf(Result.Success(mockComments))
+        coEvery { dataStoreManager.saveComments(any()) } just Runs
 
-        val viewModel = CommentViewModel(repository, savedStateHandle, application)
+        val viewModel = CommentViewModel(repository, savedStateHandle, dataStoreManager)
 
         // Act
         viewModel.fetchComments()
@@ -110,7 +107,7 @@ class CommentViewModelTest {
         val errorMessage = "Network error"
         coEvery { repository.getComments() } returns flowOf(Result.Error(errorMessage))
 
-        val viewModel = CommentViewModel(repository, savedStateHandle, application)
+        val viewModel = CommentViewModel(repository, savedStateHandle, dataStoreManager)
         // Act
         viewModel.fetchComments()
         advanceUntilIdle()
@@ -129,10 +126,10 @@ class CommentViewModelTest {
         )
 
         // Setup mock to return cached comments
-        every { anyConstructed<DataStoreManager>().getComments() } returns flowOf(cachedComments)
+        every { dataStoreManager.getComments() } returns flowOf(cachedComments)
 
         // Create new ViewModel to trigger init block
-        val viewModel = CommentViewModel(repository, savedStateHandle, application)
+        val viewModel = CommentViewModel(repository, savedStateHandle, dataStoreManager)
         advanceUntilIdle()
 
         // Assert

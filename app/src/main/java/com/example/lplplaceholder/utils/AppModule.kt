@@ -1,5 +1,6 @@
 package com.example.lplplaceholder.utils
 
+import android.app.Application
 import com.example.lplplaceholder.data.CommentRepository
 import com.example.lplplaceholder.service.ApiService
 import dagger.Module
@@ -18,7 +19,7 @@ object AppModule {
     @Singleton
     fun provideRetrofit(): Retrofit {
         return Retrofit.Builder()
-            .baseUrl("https://jsonplaceholder.typicode.com/posts/1/") // Use your base URL
+            .baseUrl("https://jsonplaceholder.typicode.com/posts/1/")
             .addConverterFactory(GsonConverterFactory.create())
             .build()
     }
@@ -33,5 +34,11 @@ object AppModule {
     @Singleton
     fun provideCommentRepository(apiService: ApiService): CommentRepository {
         return CommentRepository(apiService)
+    }
+
+    @Provides
+    @Singleton
+    fun provideDataStoreManager(application: Application): DataStoreManager {
+        return DataStoreManager(application)
     }
 }

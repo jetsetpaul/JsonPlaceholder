@@ -1,9 +1,8 @@
 package com.example.lplplaceholder.viewmodel
 
-import android.app.Application
 import android.net.Uri
-import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.lplplaceholder.data.CommentRepository
 import com.example.lplplaceholder.model.Comment
@@ -19,10 +18,8 @@ import javax.inject.Inject
 class CommentViewModel @Inject constructor(
     private val repository: CommentRepository,
     savedStateHandle: SavedStateHandle,
-    application: Application,
-) : AndroidViewModel(application) {
-
-    private val dataStoreManager = DataStoreManager(application)
+    private val dataStoreManager: DataStoreManager,
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow<CommentUiState>(CommentUiState.Loading)
     val uiState: StateFlow<CommentUiState> = _uiState

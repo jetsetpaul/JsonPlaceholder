@@ -150,18 +150,22 @@ fun CommentItem(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(
-                        text = comment.name,
-                        style = MaterialTheme.typography.labelMedium,
-                        modifier = Modifier.weight(1f),
-                        color = androidx.compose.ui.graphics.Color.Black
-                    )
+                    comment.name?.let {
+                        Text(
+                            text = it,
+                            style = MaterialTheme.typography.labelMedium,
+                            modifier = Modifier.weight(1f),
+                            color = androidx.compose.ui.graphics.Color.Black
+                        )
+                    }
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = comment.email,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = androidx.compose.ui.graphics.Color.Black
-                    )
+                    comment.email?.let {
+                        Text(
+                            text = it,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = androidx.compose.ui.graphics.Color.Black
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -171,10 +175,12 @@ fun CommentItem(
                     color = androidx.compose.ui.graphics.Color.Black
                 )
 
-                Text(
-                    text = comment.body, style = MaterialTheme.typography.bodySmall,
-                    color = androidx.compose.ui.graphics.Color.Black
-                )
+                comment.body?.let {
+                    Text(
+                        text = it, style = MaterialTheme.typography.bodySmall,
+                        color = androidx.compose.ui.graphics.Color.Black
+                    )
+                }
             }
         }
     }
